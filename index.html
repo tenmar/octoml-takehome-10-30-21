@@ -13,13 +13,10 @@
       <sidebar></sidebar>
 
       <div class='content'>
-        <h2 id="title">Sufflenet-v2.onnx</h2>
-        <p id="subtitle">Create three days ago by Mike Johnson</p>
+        <h2 id="title">Shufflenet-v2.onnx</h2>
+        <p id="subtitle">Created three days ago by Mike Johnson</p>
 
-        <div id='forms'>
-          <main-form :data="hardware" ></main-form>
-          <summary-form :data="runs"></summary-form>
-        </div>
+        <main-content :data="hardware" :runs="runs" @start-runs="handleStartRuns"></main-content>
       </div>
 
       
@@ -30,8 +27,7 @@
 
     <!-- Import Components -->
     <script src="./components/SideBar.js"></script>
-    <script src="./components/MainForm.js"></script>
-    <script src="./components/SummaryForm.js"></script>
+    <script src="./components/MainContent.js"></script>
 
 
     <!-- Mount App -->
