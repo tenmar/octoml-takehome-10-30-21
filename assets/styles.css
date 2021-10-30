@@ -430,8 +430,14 @@ color: #555B62;
   
   /* Success / 500 */
   
+}
+
+.summary-form .failure {
+  color: red;
+}
+
+.summary-form .success {
   color: #4DB396;
-  
 }
 
 .summary-row {
@@ -482,8 +488,8 @@ color: #555B62;
 
 
   /* Success / 500 */
-
   color: #4DB396;
+
 }
 
 .summary-form .octomize-button {
