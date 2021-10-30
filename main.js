@@ -15,7 +15,6 @@ const app = Vue.createApp({
       .then((res) => res.json())
       .then((data) => {
         this.hardware = data;
-        console.log(data);
       })
       .catch((err) => {
         console.error("Error fetching /hardware", err);
@@ -79,7 +78,7 @@ const app = Vue.createApp({
       // if we have both accel and bench results, check that each target passed both types
       if (b_results.length > 0 && a_results.length > 0) {
         for (let ind in b_results) {
-          results = b_results[ind] && a_results[ind];
+          results.push( b_results[ind] && a_results[ind] )
         }
       } else if (b_results.length > 0) {
         // if only bench results, return those results as errors

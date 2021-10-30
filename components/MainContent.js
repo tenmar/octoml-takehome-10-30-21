@@ -15,9 +15,9 @@ app.component("main-content", {
             <div class='main-form'>
                 <h3>Octomize</h3>
 
-                <optimization-selector type="benchmark" title="Benchmark" subtitle="This is some sub content to explain benchmarking." :options="benchmark_options" @did-select-type="handleTypeChecked"></optimization-selector>
+                <optimization-selector type="benchmark" title="Benchmark" subtitle="This is some sub content to explain benchmarking." :options="benchmark_options" @did-select-type="handleTypeChecked" @did-update="handleOptionsChanged"></optimization-selector>
                 
-                <optimization-selector type="accelerate" title="Accelerate" subtitle="Could even open this accordion for a paragraph of text." :options="acceleration_options" @did-select-type="handleTypeChecked"></optimization-selector>
+                <optimization-selector type="accelerate" title="Accelerate" subtitle="Could even open this accordion for a paragraph of text." :options="acceleration_options" @did-select-type="handleTypeChecked" @did-update="handleOptionsChanged"></optimization-selector>
 
             
                 <div id='hardware-targets-header'>
@@ -136,6 +136,9 @@ app.component("main-content", {
       } else {
         this.$emit("targets-changed");
       }
+    },
+    handleOptionsChanged() {
+      this.$emit('targets-changed') // for easy notifications
     },
     /** Handles updating values/validating the rows for when the target provider/instance changes. */
     handleTargetChanged(index) {
@@ -266,16 +269,12 @@ app.component("main-content", {
     runs() {
       let runs = 0;
       if (this.types.includes("benchmark") && this.benchmark_options.engine) {
-        console.log("Benchmark options?", this.benchmark_options);
         runs += this.benchmarkTrials * this.benchmarkRuns;
       }
 
       if (this.types.includes("accelerate") && this.acceleration_options.engine) {
-        console.log("Accelerate options?", this.acceleration_options);
         runs += this.accelerateKernelTrials;
       }
-
-      console.log("runs", runs);
 
       return runs;
     },
@@ -327,18 +326,18 @@ app.component("optimization-selector", {
             </div>
             <div class="option-pane-options" v-if="expanded && type == 'benchmark'">
                 <label for='trials'>Engine</label>
-                <styled-select id='engine' width="100px" v-model="options.engine" :opts="engines"></styled-select>
+                <styled-select id='engine' width="100px" v-model="options.engine" @update:modelValue="handleDidUpdate" :opts="engines"></styled-select>
                 <label for='trials' :class="{ disabled: !options.engine }"># of Trials</label>
-                <input :disabled="!options.engine" id="trials" type='number' v-model="options.num_trials">
+                <input :disabled="!options.engine" id="trials" type='number' @input="handleDidUpdate" v-model="options.num_trials">
                 <label for='runs' :class="{ disabled: !options.engine }">Runs Per Trial</label>
-                <input :disabled="!options.engine" id="runs" type='number' v-model="options.runs_per_trial">
+                <input :disabled="!options.engine" id="runs" type='number' @input="handleDidUpdate" v-model="options.runs_per_trial">
 
             </div>
             <div class="option-pane-options" v-if="expanded && type == 'accelerate'">
                 <label for='trials'>Engine</label>
-                <styled-select id='engine' width="100px" v-model="options.engine" :opts="engines"></styled-select>
+                <styled-select id='engine' width="100px" v-model="options.engine" @update:modelValue="handleDidUpdate" :opts="engines"></styled-select>
                 <label for='kernel_trials' v-if="options.engine == 'TVM'">Kernel Trials</label>
-                <input id="kernel_trials" v-if="options.engine == 'TVM'" type='number' v-model="options.kernel_trials">
+                <input id="kernel_trials" v-if="options.engine == 'TVM'" @input="handleDidUpdate" type='number' v-model="options.kernel_trials">
 
             </div>
         </div>
@@ -359,7 +358,12 @@ app.component("optimization-selector", {
     /** Handles the checkbox check */
     handleCheckbox(evt) {
       this.$emit("did-select-type", { checked: evt.target.checked, type: this.type });
+      this.handleDidUpdate()
     },
+
+    handleDidUpdate() {
+      this.$emit("did-update")
+    }
   },
 });
 
@@ -413,8 +417,7 @@ app.component("styled-select", {
   methods: {
     /** Hadles unfocus/blur event. */
     unfocus() {
-      console.log("Blur?");
-      //   this.open = false
+        this.open = false
     },
     /** Toggles open (when possible). */
     toggleOpen() {
