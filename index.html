@@ -12,14 +12,17 @@
     <div id="app">
       <sidebar></sidebar>
 
-      <div class='content'>
+      <div class="content">
         <h2 id="title">Shufflenet-v2.onnx</h2>
         <p id="subtitle">Created three days ago by Mike Johnson</p>
 
-        <main-content :data="hardware" :errors="errors" @start-runs="handleStartRuns" @targets-changed="handleTargetsChanged"></main-content>
+        <main-content
+          :data="hardware"
+          :errors="errors"
+          @start-runs="handleStartRuns"
+          @targets-changed="handleTargetsChanged"
+        ></main-content>
       </div>
-
-      
     </div>
 
     <!-- Import App -->
@@ -29,10 +32,9 @@
     <script src="./components/SideBar.js"></script>
     <script src="./components/MainContent.js"></script>
 
-
     <!-- Mount App -->
     <script>
-      const mountedApp = app.mount('#app')
+      const mountedApp = app.mount("#app");
     </script>
   </body>
 </html>

@@ -1,7 +1,6 @@
-
 /** Purely a cosmetic component. */
-app.component('sidebar', {
-    template: /*html*/ `
+app.component("sidebar", {
+  template: /*html*/ `
         <div class='sidebar'>
             <img class='icon logo' src='./assets/images/logo.png'>
             <img class='icon home' src='./assets/images/home.png'>
@@ -10,4 +9,4 @@ app.component('sidebar', {
             <div class='icon profile'></div>
         </div>
     `,
-})
+});
