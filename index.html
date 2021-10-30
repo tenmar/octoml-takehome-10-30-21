@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Vue Mastery</title>
+    <!-- Import Styles -->
+    <link rel="stylesheet" href="./assets/styles.css" />
+    <!-- Import Vue.js -->
+    <script src="https://unpkg.com/vue@3.0.11/dist/vue.global.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <sidebar></sidebar>
+
+      <div class='content'>
+        <h2 id="title">Sufflenet-v2.onnx</h2>
+        <p id="subtitle">Create three days ago by Mike Johnson</p>
+
+        <div id='forms'>
+          <main-form :data="hardware" ></main-form>
+          <summary-form :data="runs"></summary-form>
+        </div>
+      </div>
+
+      
+    </div>
+
+    <!-- Import App -->
+    <script src="./main.js"></script>
+
+    <!-- Import Components -->
+    <script src="./components/SideBar.js"></script>
+    <script src="./components/MainForm.js"></script>
+    <script src="./components/SummaryForm.js"></script>
+
+
+    <!-- Mount App -->
+    <script>
+      const mountedApp = app.mount('#app')
+    </script>
+  </body>
+</html>
