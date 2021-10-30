@@ -3,6 +3,10 @@ app.component('main-content', {
         data: {
             type: Array,
             required: true
+        },
+        errors: {
+            type: Array,
+            required: true
         }
     },
     template: /*html*/ `
@@ -17,11 +21,11 @@ app.component('main-content', {
             
                 <div id='hardware-targets-header'>
                     <h4 style="flex:1">Hardware Targets</h4>
-                    <button style="height:32px" @click="addTarget">Add</button>
+                    <button id="add-button" style="height:32px" @click="addTarget">Add</button>
                 </div>
                 <table>
                     <tr class='table-header'>
-                        <th style="width:256px">PROVIDER</th> 
+                        <th id="first" style="width:256px">PROVIDER</th> 
                         <th style="width:256px">INSTANCE</th>
                         <th style="width:103px">VCPU</th>
                         <th style="width:103px">MEMORY (GIB)</th>
@@ -29,22 +33,16 @@ app.component('main-content', {
                     </tr>
                     <tr v-for='(target, index) in targets' class="target-row">
                         <td style="width:256px">
-                            <select v-model="target.provider">
-                                <option value="" disabled selected>Select Provider</option>
-                                <option v-for="provider in providers(index)" :value="provider">{{ provider }}</option>
-                            </select>
+                            <styled-select placeholder="Select Provider" :opts="providers(index)" v-model="target.provider" @update:modelValue="handleTargetChanged(index)"></styled-select>
                         </td>
                         <td style="width:256px">
-                            <select :disabled="!target.provider" v-model="target.instance">
-                                <option value="" disabled selected>Select Instance</option>
-                                <option v-for="instance in instances(index)" :value="instance">{{ instance }}</option>
-                            </select>
+                            <styled-select placeholder="Select Instance" :opts="instances(index)" v-model="target.instance" :class="{ disabled: !target.provider }" @update:modelValue="handleTargetChanged(index)"></styled-select>
                         </td>
-                        <td style="width:103px" :class="[ !target.provider || !target.instance ? 'cell-disabled' : '']">
-                            {{ vcpu(index) }}
+                        <td id='cpu' style="width:103px" :class="[ !target.provider || !target.instance ? 'cell-disabled' : '']">
+                            {{ target.cpu }}
                         </td>
-                        <td style="width:103px" :class="[ !target.provider || !target.instance ? 'cell-disabled' : '']">
-                            {{ memory(index) }}
+                        <td id="memory" style="width:103px" :class="[ !target.provider || !target.instance ? 'cell-disabled' : '']">
+                            {{ target.memory }}
                         </td>
                         <td class='delete-cell' style="flex:1">
                             <img v-if="target.provider && target.instance" class='delete-button' src='./assets/images/delete.png' @click="handleRemove(index)">
@@ -53,19 +51,20 @@ app.component('main-content', {
                 </table>
             </div>
 
-            <div class='sumamry-form-container'>
+            <div class='summary-form-container'>
                 <div class='summary-form'>
-                    <p>Total runs</p>
-                    <p>{{ data.length    }}</p>
-                    <div v-for="target in targets">
-                        <div>
-                            <p>{{ target.instance }}</p>
-                            <p>{{ target.vcpu }} cores</p>
+                    <p id="total-label">Total runs</p>
+                    <p id="total">{{ totalRuns }}</p>
+                    <div v-for="(target, index) in validTargets" class='summary-row'>
+                        <div class='summary-item-left'>
+                            <p class='summary-item-instance'>{{ target.instance }}</p>
+                            <p class='summary-item-cores'>{{ target.cpu }} cores</p>
                         </div>
-                        <p>{{ getRuns(target) }}</p>
+                        <p class='summary-item-runs'>{{ runs }}</p>
+                        {{ errors.length > 1 }}
                     </div>
 
-                    <button class="octomize-button" @click="handleOctomize">Octomize</button>
+                    <button class="octomize-button" :disabled="!canOctomize" :class="{ disabled: !canOctomize }" @click="handleOctomize">Octomize</button>
                 </div>
             </div>
 
@@ -76,24 +75,24 @@ app.component('main-content', {
         return {
             types: [],
             benchmark_options: {
-                engine: '',
+                engine: 'ONNX',
                 num_trials: 1,
                 runs_per_trial: 1
             },
             acceleration_options: {
-                engine: '',
-                kernel_trials: 0,
+                engine: 'ONNX',
+                kernel_trials: 1,
             },
             targets: [
-                { provider: '', instance: '', vcpu: 0, memory: 0 }
+                { provider: '', instance: '', cpu: 0, memory: 0 }
             ]
         }
     },
 
     
     methods: {
+        
         handleTypeChecked({ checked, type }) {
-
             const ind = this.types.indexOf(type)
             if (!checked && ind >= 0) {
                 this.types.splice(ind, 1)
@@ -105,8 +104,9 @@ app.component('main-content', {
         addTarget() {
             if (this.targets.length >= this.data.length) { return }
             this.targets.push(
-                { provider: '', instance: '', vcpu: 0, memory: 0 }
+                { provider: '', instance: '', cpu: 0, memory: 0 }
             )
+            this.$emit('targets-changed')
         },
         getTarget(targetIndex) {
             return this.targets[targetIndex]
@@ -122,8 +122,37 @@ app.component('main-content', {
         },
         handleRemove(index) {
             this.targets.splice(index, 1)
+            if (this.targets.length == 0) {
+                this.addTarget()
+            } else {
+                this.$emit('targets-changed')
+            }
         },
 
+        handleTargetChanged(index) {
+            const target = this.targets[index]
+
+            const instances = this.data.filter(v => v.provider == target.provider).map(v => v.instance)
+
+            if (!instances.includes(target.instance)) {
+                target.instance = ''
+            }
+
+            target.cpu = this.vcpu(index)
+            target.memory = this.memory(index)
+
+            this.$emit('targets-changed')
+        },
+
+        providers(index) {
+            if (index == undefined) {
+                return []
+            }
+
+            return this.data.filter(v => !this.doesTargetExist(v, index))
+                .map(v => v.provider)
+                .filter((v, i, s) => s.indexOf(v) === i)
+        },
         
         instances(index) {
             if (index == undefined) {
@@ -147,35 +176,8 @@ app.component('main-content', {
             return (item && item.memory) || 0
         },
 
-        providers(index) {
-            if (index == undefined) {
-                return []
-            }
-
-            return this.data.filter(v => !this.doesTargetExist(v, index))
-                .map(v => v.provider)
-                .filter((v, i, s) => s.indexOf(v) === i)
-        },
-
-        getRuns(target) {
-            
-        },
-
-
         /// RUN
-
-        handleOctomize() {
-
-            this.$emit('start-runs', {
-                benchmark: this.benchmarkPayloads,
-                acceleration: this.accelerationPayloads
-            })
-        }
-    },
-
-
-    computed: {
-        benchmarkPayloads() {
+        getBenchmarkPayloads() {
             if (!this.types.includes('benchmark')) {
                 return null
             }
@@ -184,17 +186,19 @@ app.component('main-content', {
             let result = []
 
             for (let target of this.targets) {
-                result.push({
-                    engine: this.benchmark_options.engine,
-                    hardware: target,
-                    num_trials: this.benchmark_options.num_trials,
-                    runs_per_trial: this.benchmark_options.num_runs
-                })
+                result.push(
+                    {    
+                        engine: this.benchmark_options.engine,
+                        hardware: target,
+                        num_trials: parseInt(this.benchmark_options.num_trials),
+                        runs_per_trial: parseInt(this.benchmark_options.runs_per_trial)
+                    }
+                )
             }
 
             return result
         },
-        accelerationPayloads() {
+        getAcceleratePayloads() {
             if (!this.types.includes('accelerate')) {
                 return null
             }
@@ -204,16 +208,64 @@ app.component('main-content', {
             for (let target of this.targets) {
 
                 const engine = this.acceleration_options.engine == 'TVM' ? 
-                    { TVM: { kernel_trials: this.acceleration_options.kernel_trials } } : this.acceleration_options.engine
+                    { TVM: { kernel_trials: parseInt(this.acceleration_options.kernel_trials) } } : this.acceleration_options.engine
 
-                result.push({
-                    engine: engine,
-                    hardware: target
-                })
+                result.push(
+                    {
+                        engine: engine,
+                        hardware: target
+                    }
+                )
             }
 
             return result
+        },
+        handleOctomize() {
+
+            this.$emit('start-runs', {
+                benchmark: this.getBenchmarkPayloads(),
+                accelerate: this.getAcceleratePayloads()
+            })
         }
+    },
+
+
+    computed: {
+        validTargets() {
+            return this.targets.filter(v => v.provider && v.instance )
+        },
+        canOctomize() {
+            return this.validTargets.length > 0 && this.targets.length == this.validTargets.length && this.types.length > 0
+        },
+        benchmarkTrials() {
+            return parseInt(this.benchmark_options.num_trials)
+        },
+        benchmarkRuns() {
+            return parseInt(this.benchmark_options.runs_per_trial)
+        },
+        accelerateKernelTrials() {
+            return this.acceleration_options.engine == 'TVM' ? parseInt(this.acceleration_options.kernel_trials) : 1
+        },
+        runs() {
+            let runs = 0
+            if (this.types.includes('benchmark') && this.benchmark_options.engine) {
+                console.log("Benchmark options?", this.benchmark_options,)
+                runs += this.benchmarkTrials * this.benchmarkRuns
+            }
+
+            if (this.types.includes('accelerate') && this.acceleration_options.engine ) {
+                console.log("Accelerate options?", this.acceleration_options)
+                runs += this.accelerateKernelTrials
+            }
+
+            console.log("runs", runs)
+
+            return runs
+        },
+        totalRuns() {
+            return this.runs * this.validTargets.length
+        },
+        
     }
 })
 
@@ -243,33 +295,27 @@ app.component('optimization-selector', {
     template: /*html*/ `
         <div class="option-pane-container">
             <div class="option-pane" @click="toggleExpand">
-                <input type="checkbox" v-model="checked" @click.stop @change="handleCheckbox($event)">
+                <input id='check' type="checkbox" @click.stop @change="handleCheckbox($event)">
                 <div style="flex:1"> 
-                    <p>{{ title }}</p>
-                    <p>{{ subtitle }}</p>
+                    <p id="title">{{ title }}</p>
+                    <p id="subtitle">{{ subtitle }}</p>
                 </div>
                 <img style="width:10px" src='./assets/images/chevron.png' :class="{ expanded: expanded }" />
             </div>
             <div class="option-pane-options" v-if="expanded && type == 'benchmark'">
-                <select v-model="engine">
-                    <option value="" disabled selected>Select Engine</option>
-                    <option>ONNX</option>
-                    <option>TVM</option>
-                </select>
-                <label for='trials' :class="[ !engine ? 'disabled-label' : '']"># of Trials</label>
-                <input :disabled="!engine" id="trials" type='number' v-model="num_trials">
-                <label for='runs' :class="[ !engine ? 'disabled-label' : '']">Runs Per Trial</label>
-                <input :disabled="!engine" id="runs" type='number' v-model="num_runs">
+                <label for='trials'>Engine</label>
+                <styled-select id='engine' width="100px" v-model="options.engine" :opts="engines"></styled-select>
+                <label for='trials' :class="{ disabled: !options.engine }"># of Trials</label>
+                <input :disabled="!options.engine" id="trials" type='number' v-model="options.num_trials">
+                <label for='runs' :class="{ disabled: !options.engine }">Runs Per Trial</label>
+                <input :disabled="!options.engine" id="runs" type='number' v-model="options.runs_per_trial">
 
             </div>
             <div class="option-pane-options" v-if="expanded && type == 'accelerate'">
-                <select v-model="engine">
-                    <option value="" disabled selected>Select Engine</option>
-                    <option>ONNX</option>
-                    <option>TVM</option>
-                </select>
-                <label for='kernel_trials' v-if="engine == 'TVM'">Kernel Trials</label>
-                <input id="kernel_trials" v-if="engine == 'TVM'" type='number' v-model="num_kernel_trials">
+                <label for='trials'>Engine</label>
+                <styled-select id='engine' width="100px" v-model="options.engine" :opts="engines"></styled-select>
+                <label for='kernel_trials' v-if="options.engine == 'TVM'">Kernel Trials</label>
+                <input id="kernel_trials" v-if="options.engine == 'TVM'" type='number' v-model="options.kernel_trials">
 
             </div>
         </div>
@@ -278,11 +324,7 @@ app.component('optimization-selector', {
     data() {
         return {
             expanded: false,
-            checked: false,
-            engine: "",
-            num_trials: 0,
-            num_runs: 0,
-            num_kernel_trials: 0
+            engines: ['ONNX', 'TVM']
         }
     },
     
@@ -294,4 +336,65 @@ app.component('optimization-selector', {
             this.$emit('did-select-type', { checked: evt.target.checked, type: this.type })
         }
     }
+})
+
+
+app.component('styled-select', {
+    // need tabindex="0" to focus div
+    template: /*html*/ `
+        <div class="styled-select" @blur="unfocus" tabindex="0"> 
+            <div class="select-dropdown" :style="[ width ? { width: width } : {}]" v-if="open">
+                <div class="select-options" v-for="(opt, i) of opts" @click="handleClick(opt)">{{ opt }}</div>
+            </div>
+            <div class="select-input" @click="toggleOpen">
+                <p>{{ selected }}</p>
+                <img src="./assets/images/chevron.png">
+            </div>
+        </div>
+    `,
+    props: {
+        opts: {
+          type: Array,
+          required: true,
+        },
+        placeholder: {
+            type: String,
+            required: false,
+            default: ''
+        },
+        modelValue: {
+            type: String,
+        },
+        width: {
+            type: String,
+        }
+      },
+      data() {
+        return {
+          open: false,
+          selected_value: this.placeholder || ''
+        };
+      },
+      methods: {
+          unfocus() {
+              console.log("Blur?")
+            //   this.open = false
+          },
+          toggleOpen() {
+              if (this.opts.length == 0) { return }
+              this.open = !this.open
+          },
+          handleClick(option) {
+            if (this.opts.length == 0) { return }
+
+            this.selected_value = option;
+            this.open = false;
+            this.$emit('update:modelValue', option);
+          }
+      },
+      computed: {
+          selected() {
+              return this.modelValue || this.placeholder
+          }
+      },
 })

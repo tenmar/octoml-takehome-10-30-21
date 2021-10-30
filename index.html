@@ -16,7 +16,7 @@
         <h2 id="title">Shufflenet-v2.onnx</h2>
         <p id="subtitle">Created three days ago by Mike Johnson</p>
 
-        <main-content :data="hardware" :runs="runs" @start-runs="handleStartRuns"></main-content>
+        <main-content :data="hardware" :errors="errors" @start-runs="handleStartRuns" @targets-changed="handleTargetsChanged"></main-content>
       </div>
 
       
